@@ -1,4 +1,4 @@
-import { WorkNode } from "./WorkNode";
+import { WorkNode } from "../";
 
 export class LinkedList<T> {
   head: WorkNode<T>;
