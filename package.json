@@ -1,0 +1,27 @@
+{
+  "name": "scheduler",
+  "version": "1.0.0",
+  "description": "Sync and async function scheduler.",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AlexandruCalinica/scheduler.git"
+  },
+  "author": "Alexandru Calinica",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/AlexandruCalinica/scheduler/issues"
+  },
+  "homepage": "https://github.com/AlexandruCalinica/scheduler#readme",
+  "devDependencies": {
+    "@babel/core": "^7.14.6",
+    "@babel/preset-env": "^7.14.7",
+    "@babel/preset-typescript": "^7.14.5",
+    "@types/jest": "^26.0.23",
+    "babel-jest": "^27.0.6",
+    "jest": "^27.0.6"
+  }
+}
