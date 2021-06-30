@@ -4,6 +4,8 @@
   "description": "Sync and async function scheduler.",
   "main": "index.js",
   "scripts": {
+    "start": "ts-node index.ts",
+    "dev": "tsnd --respawn index.ts",
     "test": "jest"
   },
   "repository": {
@@ -24,7 +26,10 @@
     "babel-jest": "^27.0.6",
     "jest": "^27.0.6",
     "ts-jest": "^27.0.3",
+    "ts-node-dev": "^1.1.7",
     "typescript": "^4.3.4"
   },
-  "dependencies": {}
+  "dependencies": {
+    "ts-node": "^10.0.0"
+  }
 }

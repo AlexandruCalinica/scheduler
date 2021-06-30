@@ -1,7 +1,7 @@
 import { mocked } from "ts-jest/utils";
-import { LinkedList } from "../LinkedList";
+import { LinkedList } from "../src/LinkedList";
 
-jest.mock("../LinkedList");
+jest.mock("../src/LinkedList/LinkedList");
 const MockedLinkedList = mocked(LinkedList, true);
 
 describe("LinkedList Consumer", () => {
@@ -26,5 +26,9 @@ describe("LinkedList Consumer", () => {
 
   it("Should be able to return a LinkedList instance after calling new()", () => {
     expect(new LinkedList<any>()).toBeTruthy();
+  });
+
+  it("SAMPLE", () => {
+    console.log(LinkedList.of<any>());
   });
 });
