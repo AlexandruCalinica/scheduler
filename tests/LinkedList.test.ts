@@ -1,34 +1,22 @@
-import { mocked } from "ts-jest/utils";
 import { LinkedList } from "../src/LinkedList";
-
-jest.mock("../src/LinkedList/LinkedList");
-const MockedLinkedList = mocked(LinkedList, true);
+import { WorkNode } from "../src/WorkNode";
 
 describe("LinkedList Consumer", () => {
-  beforeEach(() => {
-    MockedLinkedList.mockClear();
+  it("Should be able to return a LinkedList instance by calling static method .of()", () => {
+    const linkedList = LinkedList.of<any>();
+
+    expect(linkedList).toBeInstanceOf(LinkedList);
+    expect(linkedList.size).toBe(0);
+    expect(linkedList.head).toBe(undefined);
   });
 
-  LinkedList.of<any>();
+  it("Should be able to add a new WorkNode to head by calling .addNodeToHead() with an argument of type any", () => {
+    const linkedList = LinkedList.of<number>();
 
-  it("Should be able to call .of() on LinkedList", () => {
-    expect(MockedLinkedList.of).toHaveBeenCalledTimes(1);
-  });
+    const newList = linkedList.addNodeToHead(1);
 
-  it("Should be able to call new() on the LinkedList constructor", () => {
-    new LinkedList<any>();
-    expect(MockedLinkedList).toHaveBeenCalledTimes(1);
-  });
-
-  it("Should be able to return a LinkedList instance after calling .of()", () => {
-    expect(MockedLinkedList.of.mock.instances).toHaveLength(1);
-  });
-
-  it("Should be able to return a LinkedList instance after calling new()", () => {
-    expect(new LinkedList<any>()).toBeTruthy();
-  });
-
-  it("SAMPLE", () => {
-    console.log(LinkedList.of<any>());
+    expect(newList.size).toBe(1);
+    expect(newList.head).toBeInstanceOf(WorkNode);
+    expect(newList.head.value).toBe(1);
   });
 });
