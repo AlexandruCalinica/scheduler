@@ -1,4 +1,5 @@
 import { WorkNode } from '../';
+import { isNil, isEmpty } from 'lodash';
 
 export class LinkedList<T> {
   head: WorkNode<T>;
@@ -24,32 +25,33 @@ export class LinkedList<T> {
 
   public findWorkNode(
     head: WorkNode<T>,
-    { prop = null, value = null }: { prop: keyof T | null; value: T | string | number | null },
-  ) {
-    return findNode<T>(head, { prop, value });
-  }
-}
+    options: { prop?: keyof T | null; value?: T | string | number | null },
+  ): WorkNode<T> {
+    if (isNil(options)) {
+      throw new Error(`The <options> parameter is required. Received ${options}`);
+    }
+    if (isEmpty(options)) {
+      throw new Error(
+        `The <options> parameter is an object or value with length 0. Received ${options}`,
+      );
+    }
 
-function findNode<T>(
-  head: WorkNode<T>,
-  { prop = null, value = null }: { prop: keyof T | null; value: T | string | number | null },
-) {
-  if (!head.next) {
-    throw new Error('Finished traversing the linked list. No WorkNode found.');
-  }
-  if (!prop && !value) {
-    throw new Error('The options parameter is undefined.');
-  }
-  if (prop && !value) {
-    throw new Error(`Found parameter options.prop=${prop} but options.value is null.`);
-  }
-  if (!prop && value) {
-    if (head.value === value) {
+    const { prop, value } = options;
+
+    if (prop && !value) {
+      throw new Error(`Found parameter <options>.prop=${prop} but <options>.value is null.`);
+    }
+    if (!prop && value) {
+      if (head.value === value) {
+        return head;
+      }
+    }
+    if (head.value[`${prop}`] === value) {
       return head;
     }
+    if (!head.next) {
+      throw new Error('Finished traversing the linked list. No WorkNode found.');
+    }
+    return this.findWorkNode(head.next, options);
   }
-  if (head.value[`${prop}`] === value) {
-    return head;
-  }
-  findNode(head.next, { prop, value });
 }
