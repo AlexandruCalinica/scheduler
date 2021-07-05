@@ -1,4 +1,8 @@
-function _go(machine, step) {
+type MessageState = 'continue' | 'park';
+
+type Message = [MessageState, any];
+
+function register(generator: Generator, step: any) {
   while (!step.done) {
     let arr = step.value(),
       state = arr[0],
@@ -7,19 +11,19 @@ function _go(machine, step) {
     switch (state) {
       case 'park':
         setImmediate(function () {
-          _go(machine, step);
+          register(generator, step);
         });
         return;
       case 'continue':
-        step = machine.next(value);
+        step = generator.next(value);
         break;
     }
   }
 }
 
-function makeGenerator(fn: Function): (channel) => Function {
-  return function (channel) {
-    return function* () {
+function makeSyncGenerator(fn: Function): (channel: Array<any>) => Function {
+  return function (channel): Function {
+    return function* (): Generator {
       let val = null;
       if (channel.length > 0) {
         val = take(channel)()[1];
@@ -29,15 +33,15 @@ function makeGenerator(fn: Function): (channel) => Function {
   };
 }
 
-export function go(...fns: Function[]) {
+export function channel(...fns: Function[]) {
   let channel = [];
   fns.forEach((fn) => {
-    let gen = makeGenerator(fn)(channel)();
-    _go(gen, gen.next());
+    let gen: Generator = makeSyncGenerator(fn)(channel)();
+    register(gen, gen.next());
   });
 }
 
-export function put(chan, val) {
+export function put(chan: Array<any>, val: any) {
   return function () {
     if (chan.length === 0) {
       chan.unshift(val);
@@ -48,7 +52,7 @@ export function put(chan, val) {
   };
 }
 
-export function take(chan) {
+export function take(chan: Array<any>) {
   return function () {
     if (chan.length === 0) {
       return ['park', null];

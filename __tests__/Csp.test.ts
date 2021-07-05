@@ -1,9 +1,9 @@
-import { go } from '../src/Csp';
+import { channel } from '../src/Csp';
 
-describe('Csp', () => {
+describe('channel()', () => {
   let res;
 
-  go(
+  channel(
     () => 'hello',
     (val) => (res = val + ' ' + 'world'),
   );
