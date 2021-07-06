@@ -1,12 +1,11 @@
 type MessageState = 'continue' | 'park';
-
 type Message = [MessageState, any];
 
-function register(generator: Generator, step: any) {
+export function register(generator: Generator, step: IteratorResult<any>): void {
   while (!step.done) {
-    let arr = step.value(),
-      state = arr[0],
-      value = arr[1];
+    let message = step.value();
+    let state = message[0];
+    let value = message[1];
 
     switch (state) {
       case 'park':
@@ -21,9 +20,11 @@ function register(generator: Generator, step: any) {
   }
 }
 
-function makeSyncGenerator(fn: Function): (channel: Array<any>) => Function {
-  return function (channel): Function {
-    return function* (): Generator {
+export function makeSyncGenerator(
+  fn: Function,
+): (channel: Array<any>) => () => Generator<() => Message, void, void> {
+  return function applyChannel(channel): () => Generator<() => Message, void, void> {
+    return function* applyGenerator(): Generator<() => Message, void, void> {
       let val = null;
       if (channel.length > 0) {
         val = take(channel)()[1];
@@ -33,18 +34,18 @@ function makeSyncGenerator(fn: Function): (channel: Array<any>) => Function {
   };
 }
 
-export function channel(...fns: Function[]) {
+export function channel(...fns: Function[]): void {
   let channel = [];
   fns.forEach((fn) => {
-    let gen: Generator = makeSyncGenerator(fn)(channel)();
+    let gen: Generator<() => Message, void, void> = makeSyncGenerator(fn)(channel)();
     register(gen, gen.next());
   });
 }
 
-export function put(chan: Array<any>, val: any) {
-  return function () {
-    if (chan.length === 0) {
-      chan.unshift(val);
+export function put(channel: Array<any>, val: Function): () => Message {
+  return function putMessage(): Message {
+    if (channel.length === 0) {
+      channel.unshift(val);
       return ['continue', null];
     } else {
       return ['park', null];
@@ -52,12 +53,12 @@ export function put(chan: Array<any>, val: any) {
   };
 }
 
-export function take(chan: Array<any>) {
-  return function () {
-    if (chan.length === 0) {
+export function take(channel: Array<any>): () => Message {
+  return function takeMessage(): Message {
+    if (channel.length === 0) {
       return ['park', null];
     } else {
-      let val = chan.pop();
+      let val = channel.pop();
       return ['continue', val];
     }
   };
