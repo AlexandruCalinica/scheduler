@@ -1,5 +1,6 @@
-type MessageState = 'continue' | 'park';
-type Message = [MessageState, any];
+export type MessageState = 'continue' | 'park';
+export type Message = [MessageState, any];
+export type MessageGenerator = Generator<() => Message, void, any>;
 
 export function register(generator: Generator, step: IteratorResult<any>): void {
   while (!step.done) {
@@ -20,11 +21,9 @@ export function register(generator: Generator, step: IteratorResult<any>): void 
   }
 }
 
-export function makeSyncGenerator(
-  fn: Function,
-): (channel: Array<any>) => () => Generator<() => Message, void, void> {
-  return function applyChannel(channel): () => Generator<() => Message, void, void> {
-    return function* applyGenerator(): Generator<() => Message, void, void> {
+export function makeSyncGenerator(fn: Function): (channel: Array<any>) => () => MessageGenerator {
+  return function applyChannel(channel): () => MessageGenerator {
+    return function* applyGenerator(): MessageGenerator {
       let val = null;
       if (channel.length > 0) {
         val = take(channel)()[1];
@@ -37,7 +36,7 @@ export function makeSyncGenerator(
 export function channel(...fns: Function[]): void {
   let channel = [];
   fns.forEach((fn) => {
-    let gen: Generator<() => Message, void, void> = makeSyncGenerator(fn)(channel)();
+    let gen: MessageGenerator = makeSyncGenerator(fn)(channel)();
     register(gen, gen.next());
   });
 }

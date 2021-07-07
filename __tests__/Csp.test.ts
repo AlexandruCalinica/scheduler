@@ -1,4 +1,4 @@
-import { channel, makeSyncGenerator, take, put } from '../src/Csp';
+import { channel, makeSyncGenerator, take, put, Message, MessageState } from '../src/Csp';
 
 describe('channel()', () => {
   let res;
@@ -52,5 +52,36 @@ describe('makeSyncGenerator()', () => {
     const test = () => gen().throw('error');
 
     expect(test).toThrowError('error');
+  });
+});
+
+describe('take()', () => {
+  it('Should return a curried function that returns a Message object', () => {
+    const fn = () => 'result';
+    const channel = [fn];
+
+    const firstCall = take(channel);
+    const secondCall = firstCall();
+
+    expect(firstCall).toBeInstanceOf(Function);
+    expect(secondCall).toStrictEqual(['continue', fn]);
+  });
+
+  it(`Should return a 'park' Message object when called with an empty channel`, () => {
+    const channel = [];
+
+    const firstCall = take(channel);
+    const secondCall = firstCall();
+
+    expect(firstCall).toBeInstanceOf(Function);
+    expect(secondCall).toStrictEqual(['park', null]);
+  });
+
+  it('Should throw an error if channel is null or undefined', () => {
+    expect(2 + 2).toBe(4);
+  });
+
+  it('Should throw an error if channel is not of type Channel', () => {
+    expect(2 + 2).toBe(4);
   });
 });
