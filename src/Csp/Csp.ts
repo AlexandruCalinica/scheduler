@@ -1,3 +1,5 @@
+import { isFunction, isNil } from 'lodash';
+
 export type MessageState = 'continue' | 'park';
 export type Message = [MessageState, any];
 export type MessageGenerator = Generator<() => Message, void, any>;
@@ -41,10 +43,13 @@ export function channel(...fns: Function[]): void {
   });
 }
 
-export function put(channel: Array<any>, val: Function): () => Message {
+export function put(channel: Array<Function>, value: any): () => Message {
+  if (!Array.isArray(channel)) {
+    throw new Error(`Received ${channel} for <channel>. Parameter <channel> must be an Array.`);
+  }
   return function putMessage(): Message {
     if (channel.length === 0) {
-      channel.unshift(val);
+      channel.unshift(value);
       return ['continue', null];
     } else {
       return ['park', null];
@@ -52,7 +57,10 @@ export function put(channel: Array<any>, val: Function): () => Message {
   };
 }
 
-export function take(channel: Array<any>): () => Message {
+export function take(channel: Array<Function>): () => Message {
+  if (!Array.isArray(channel)) {
+    throw new Error(`Received ${channel} for <channel>. Parameter <channel> must be an Array.`);
+  }
   return function takeMessage(): Message {
     if (channel.length === 0) {
       return ['park', null];
