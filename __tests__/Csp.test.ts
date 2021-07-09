@@ -102,6 +102,31 @@ describe('take()', () => {
 });
 
 describe('put()', () => {
+  it(`Should unshift <value> and return a 'continue' Message object when called with an empty channel`, () => {
+    const channel = [];
+    const val = () => {};
+
+    const p1 = put(channel, val);
+    const p2 = p1();
+
+    expect(p1).toBeInstanceOf(Function);
+    expect(p2).toStrictEqual(['continue', null]);
+    expect(channel).toHaveLength(1);
+    expect(channel[0]).toBe(val);
+  });
+
+  it(`Should return a 'park' Message object if called with a channel of length > 0`, () => {
+    const channel = [() => {}];
+    const val = () => {};
+
+    const p1 = put(channel, val);
+    const p2 = p1();
+
+    expect(p1).toBeInstanceOf(Function);
+    expect(p2).toStrictEqual(['park', null]);
+    expect(channel).toHaveLength(1);
+  });
+
   it('Should throw an error if channel is not an Array', () => {
     const c1 = {};
     const c2 = 0;
