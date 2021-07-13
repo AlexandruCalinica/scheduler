@@ -1,8 +1,7 @@
-import { isFunction, isNil } from 'lodash';
-
 export type MessageState = 'continue' | 'park';
 export type Message = [MessageState, any];
 export type MessageGenerator = Generator<() => Message, void, any>;
+export type AsyncMessageGenerator = AsyncGenerator<() => Message, void, any>;
 
 export function register(generator: Generator, step: IteratorResult<any>): void {
   while (!step.done) {
@@ -24,13 +23,29 @@ export function register(generator: Generator, step: IteratorResult<any>): void 
 }
 
 export function makeSyncGenerator(fn: Function): (channel: Array<any>) => () => MessageGenerator {
-  return function applyChannel(channel): () => MessageGenerator {
+  return function applyChannel(channel: Array<any>): () => MessageGenerator {
     return function* applyGenerator(): MessageGenerator {
       let val = null;
-      if (channel.length > 0) {
+      if (channel.length) {
         val = take(channel)()[1];
       }
-      yield put(channel, fn(val));
+      const nextVal = fn(val);
+      yield put(channel, nextVal);
+    };
+  };
+}
+
+export function makeAsyncGenerator(
+  fn: Function,
+): (channel: Array<any>) => () => AsyncMessageGenerator {
+  return function applyChannel(channel: Array<any>): () => AsyncMessageGenerator {
+    return async function* applyGenerator(): AsyncMessageGenerator {
+      let val = null;
+      if (channel.length) {
+        val = take(channel)()[1];
+      }
+      const nextVal = await fn(val);
+      yield put(channel, nextVal);
     };
   };
 }
