@@ -1,15 +1,37 @@
 import { channel, makeSyncGenerator, take, put, Message, MessageState } from '../src/Csp';
 
 describe('channel()', () => {
-  let res;
-
-  channel(
-    () => 'hello',
-    (val) => (res = val + ' ' + 'world'),
-  );
-
   it('Should return hello world', () => {
+    let res;
+
+    channel(
+      () => 'hello',
+      (val) => (res = val + ' ' + 'world'),
+    );
     expect(res).toBe('hello world');
+  });
+
+  it('Should return hello world from async', () => {
+    const asyncCall = () =>
+      new Promise((resolve) => {
+        resolve('world');
+      });
+
+    channel(
+      () => 'hello',
+      async (val) => {
+        try {
+          const data = await asyncCall();
+          return val + ' ' + data;
+        } catch (err) {
+          return err;
+        }
+      },
+      async (val) => {
+        const data = await val;
+        expect(data).toBe('hello world');
+      },
+    );
   });
 });
 
