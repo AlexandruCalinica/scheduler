@@ -1,4 +1,4 @@
-import { channel, makeSyncGenerator, take, put, Message, MessageState } from '../src/Csp';
+import { channel, gen, take, put, register, chan } from '../src/Csp';
 
 describe('channel()', () => {
   it('Should return hello world', () => {
@@ -35,23 +35,125 @@ describe('channel()', () => {
   });
 });
 
-describe('makeSyncGenerator()', () => {
+describe('chan()', () => {
+  it('Should return hello world', () => {
+    const { go } = chan();
+
+    let res;
+
+    go(() => 'hello');
+    go((val) => val + ' ' + 'world');
+    go((val) => (res = val));
+
+    expect(res).toBe('hello world');
+  });
+
+  it('Should return hello world from async', () => {
+    const asyncCall = () =>
+      new Promise((resolve) => {
+        resolve('world');
+      });
+
+    const { go } = chan();
+
+    let res;
+
+    go(() => 'hello');
+    go(async (val) => val + ' ' + (await asyncCall()));
+    go(async (val) => (res = await val));
+    go(async (val) => expect(await val).toBe('hello world'));
+  });
+});
+
+describe('Usecase 2 - PingPong', () => {
+  it('Should take message from other channel', () => {
+    const chanA = chan();
+    const chanB = chan();
+
+    let ping, pong, pingpong;
+
+    chanA.go(() => 'ping');
+
+    chanB.go(() => {
+      ping = take(chanA.channel)()[1];
+      return 'pong';
+    });
+
+    chanA.go(() => {
+      pong = take(chanB.channel)()[1];
+      pingpong = ping + ' ' + pong;
+    });
+
+    expect(ping).toBe('ping');
+    expect(pong).toBe('pong');
+    expect(pingpong).toBe('ping pong');
+  });
+
+  it('Should put message into other channel', () => {
+    const chanA = chan();
+    const chanB = chan();
+
+    let ping, pong;
+
+    chanA.go(() => 'ping');
+
+    chanA.go((val) => {
+      ping = val;
+      put(chanB.channel, 'pong')();
+    });
+
+    chanB.go((val) => {
+      pong = val;
+      put(chanA.channel, 'ping')();
+    });
+
+    chanA.go((val) => {
+      // maybe channel is closed here
+      console.log(val);
+    });
+
+    expect(ping).toBe('ping');
+    expect(pong).toBe('pong');
+  });
+});
+
+describe('Usecase 1', () => {
+  it('Should return hello world', () => {
+    let res;
+    const channel = [];
+    const gen1 = gen(() => 'hello')(channel)();
+    const gen2 = gen((val) => val + ' ')(channel)();
+    const gen3 = gen((val) => val + 'world')(channel)();
+    const gen4 = gen((val) => {
+      res = val;
+    })(channel)();
+
+    register(gen1, gen1.next());
+    register(gen2, gen2.next());
+    register(gen3, gen3.next());
+    register(gen4, gen4.next());
+
+    expect(res).toBe('hello world');
+  });
+});
+
+describe('gen()', () => {
   it('Should return a generator function', () => {
     const channel = [];
-    const gen = makeSyncGenerator(() => 'result')(channel);
+    const mes = gen(() => 'result')(channel);
 
-    expect(gen).toBeInstanceOf(Function);
-    expect(gen().next).toBeTruthy();
-    expect(gen().return).toBeTruthy();
-    expect(gen().throw).toBeTruthy();
-    expect(gen().throw).toBeInstanceOf(Function);
+    expect(mes).toBeInstanceOf(Function);
+    expect(mes().next).toBeTruthy();
+    expect(mes().return).toBeTruthy();
+    expect(mes().throw).toBeTruthy();
+    expect(mes().throw).toBeInstanceOf(Function);
   });
 
   it('.next() should return an object of shape { value: Function, done: Boolean }', () => {
     const channel = [];
-    const gen = makeSyncGenerator(() => 'result')(channel);
+    const mes = gen(() => 'result')(channel);
 
-    const next = gen().next();
+    const next = mes().next();
 
     expect(next.value).toBeInstanceOf(Function);
     expect(next.done).toBe(false);
@@ -59,9 +161,9 @@ describe('makeSyncGenerator()', () => {
 
   it('.return() should return an object of shape { value: undefined, done: Boolean }', () => {
     const channel = [];
-    const gen = makeSyncGenerator(() => 'result')(channel);
+    const mes = gen(() => 'result')(channel);
 
-    const _return = gen().return();
+    const _return = mes().return();
 
     expect(_return.value).toBeUndefined();
     expect(_return.done).toBe(true);
@@ -69,9 +171,9 @@ describe('makeSyncGenerator()', () => {
 
   it('.throw() should throw an error', () => {
     const channel = [];
-    const gen = makeSyncGenerator(() => 'result')(channel);
+    const mes = gen(() => 'result')(channel);
 
-    const test = () => gen().throw('error');
+    const test = () => mes().throw('error');
 
     expect(test).toThrowError('error');
   });

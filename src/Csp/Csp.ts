@@ -22,7 +22,7 @@ export function register(generator: Generator, step: IteratorResult<any>): void 
   }
 }
 
-export function makeSyncGenerator(fn: Function): (channel: Array<any>) => () => MessageGenerator {
+export function gen(fn: Function): (channel: Array<any>) => () => MessageGenerator {
   return function applyChannel(channel: Array<any>): () => MessageGenerator {
     return function* applyGenerator(): MessageGenerator {
       let val = null;
@@ -35,28 +35,40 @@ export function makeSyncGenerator(fn: Function): (channel: Array<any>) => () => 
   };
 }
 
-export function makeAsyncGenerator(
-  fn: Function,
-): (channel: Array<any>) => () => AsyncMessageGenerator {
-  return function applyChannel(channel: Array<any>): () => AsyncMessageGenerator {
-    return async function* applyGenerator(): AsyncMessageGenerator {
+export function channel(...fns: Function[]): void {
+  let channel = [];
+  fns.forEach((fn) => {
+    let mes: MessageGenerator = gen(fn)(channel)();
+    register(mes, mes.next());
+  });
+}
+
+//
+function _gen(channel: Array<any>) {
+  return function applyFn(fn: Function) {
+    return function* applyGen(): MessageGenerator {
       let val = null;
       if (channel.length) {
         val = take(channel)()[1];
       }
-      const nextVal = await fn(val);
-      yield put(channel, nextVal);
+      yield put(channel, fn(val));
     };
   };
 }
 
-export function channel(...fns: Function[]): void {
-  let channel = [];
-  fns.forEach((fn) => {
-    let gen: MessageGenerator = makeSyncGenerator(fn)(channel)();
-    register(gen, gen.next());
-  });
+export function chan() {
+  const channel = [];
+  const go = (fn: Function) => {
+    const mes = _gen(channel)(fn)();
+    register(mes, mes.next());
+  };
+
+  return {
+    go,
+    channel,
+  };
 }
+//
 
 export function put(channel: Array<Function>, value: any): () => Message {
   if (!Array.isArray(channel)) {
