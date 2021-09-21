@@ -93,7 +93,7 @@ describe('Usecase 2 - PingPong', () => {
     const chanA = chan();
     const chanB = chan();
 
-    let ping, pong;
+    let ping, pong, pingpong;
 
     chanA.go(() => 'ping');
 
@@ -104,16 +104,17 @@ describe('Usecase 2 - PingPong', () => {
 
     chanB.go((val) => {
       pong = val;
-      put(chanA.channel, 'ping')();
+      take(chanA.channel)();
+      put(chanA.channel, 'pingpong')();
     });
 
     chanA.go((val) => {
-      // maybe channel is closed here
-      console.log(val);
+      pingpong = val;
     });
 
     expect(ping).toBe('ping');
     expect(pong).toBe('pong');
+    expect(pingpong).toBe('pingpong');
   });
 });
 

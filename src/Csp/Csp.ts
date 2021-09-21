@@ -47,11 +47,14 @@ export function channel(...fns: Function[]): void {
 function _gen(channel: Array<any>) {
   return function applyFn(fn: Function) {
     return function* applyGen(): MessageGenerator {
-      let val = null;
+      let value = null;
+      let state = null;
       if (channel.length) {
-        val = take(channel)()[1];
+        const message = take(channel)();
+        state = message[0];
+        value = message[1];
       }
-      yield put(channel, fn(val));
+      yield put(channel, fn(value, state));
     };
   };
 }
