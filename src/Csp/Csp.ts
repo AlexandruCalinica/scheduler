@@ -18,6 +18,9 @@ export function register(generator: Generator, step: IteratorResult<any>): void 
       case 'continue':
         step = generator.next(value);
         break;
+      case 'waitContinue':
+        step = (async () => generator.next(await value))() as any;
+        break;
     }
   }
 }
@@ -44,8 +47,12 @@ export function channel(...fns: Function[]): void {
 }
 
 //
+interface Options {
+  async?: boolean;
+}
+
 function _gen(channel: Array<any>) {
-  return function applyFn(fn: Function) {
+  return function applyFn(fn: Function, options: Options) {
     return function* applyGen(): MessageGenerator {
       let value = null;
       let state = null;
@@ -59,10 +66,25 @@ function _gen(channel: Array<any>) {
   };
 }
 
+function _genAsync(channel: Array<any>) {
+  return function applyFn(fn: Function, options: Options) {
+    return async function* applyGen(): AsyncMessageGenerator {
+      let value = null;
+      let state = null;
+      if (channel.length) {
+        const message = await takeAsync(channel)();
+        state = message[0];
+        value = message[1];
+      }
+      yield put(channel, fn(value, state));
+    };
+  };
+}
+
 export function chan() {
   const channel = [];
-  const go = (fn: Function) => {
-    const mes = _gen(channel)(fn)();
+  const go = (fn: Function, options?: Options) => {
+    const mes = _gen(channel)(fn, options)();
     register(mes, mes.next());
   };
 
@@ -96,6 +118,21 @@ export function take(channel: Array<Function>): () => Message {
       return ['park', null];
     } else {
       let val = channel.pop();
+      console.log('take val -> ', val);
+      return ['continue', val];
+    }
+  };
+}
+
+export function takeAsync(channel: Array<Promise<any>>): () => Promise<Message> {
+  if (!Array.isArray(channel)) {
+    throw new Error(`Received ${channel} for <channel>. Parameter <channel> must be an Array.`);
+  }
+  return async function takeMessage(): Promise<Message> {
+    if (channel.length === 0) {
+      return ['park', null];
+    } else {
+      let val = await channel.pop();
       return ['continue', val];
     }
   };

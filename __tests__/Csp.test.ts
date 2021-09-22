@@ -116,6 +116,37 @@ describe('Usecase 2 - PingPong', () => {
     expect(pong).toBe('pong');
     expect(pingpong).toBe('pingpong');
   });
+
+  it('Should put message into other channel - Async', () => {
+    const chanA = chan();
+    const chanB = chan();
+
+    const asyncCall = () =>
+      new Promise((resolve) => {
+        resolve('world');
+      });
+
+    let hello, world;
+
+    chanA.go(() => 'hello');
+    chanA.go(async (val) => {
+      hello = val;
+      const asyncVal = await asyncCall();
+      console.log(asyncVal);
+      chanB.go(() => asyncVal);
+    });
+
+    chanB.go(
+      async (val) => {
+        console.log(await val);
+        world = await val;
+      },
+      { async: true },
+    );
+
+    expect(hello).toBe('hello');
+    expect(world).toBe('world');
+  });
 });
 
 describe('Usecase 1', () => {
