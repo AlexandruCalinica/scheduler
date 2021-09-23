@@ -1,4 +1,4 @@
-import { channel, gen, take, put, register, chan } from '../src/Csp';
+import { channel, gen, take, put, register, chan, takeAsync } from '../src/Csp';
 
 describe('channel()', () => {
   it('Should return hello world', () => {
@@ -129,24 +129,76 @@ describe('Usecase 2 - PingPong', () => {
     let hello, world;
 
     chanA.go(() => 'hello');
-    chanA.go(async (val) => {
+    chanA.goAsync(async (val) => {
       hello = val;
       const asyncVal = await asyncCall();
-      console.log(asyncVal);
-      chanB.go(() => asyncVal);
+      console.log('log 1', asyncVal);
+      chanB.goAsync(() => asyncVal);
     });
 
-    chanB.go(
-      async (val) => {
-        console.log(await val);
-        world = await val;
-      },
-      { async: true },
-    );
+    chanB.goAsync(async (val) => {
+      console.log('log 2', await val);
+      world = await val;
+    });
 
     expect(hello).toBe('hello');
     expect(world).toBe('world');
   });
+});
+
+it('Async POC', () => {
+  const c = chan();
+
+  const asyncCall = () =>
+    new Promise((resolve) => {
+      resolve('world');
+    });
+
+  c.go(() => 'hello');
+  c.go(async (val) => {
+    const v = await asyncCall();
+    return val + ' ' + v;
+  });
+  c.goAsync(async (val) => {
+    console.log('last', val);
+    expect(val).toBe('hello world');
+  });
+});
+
+it.only('Async POC 2', () => {
+  const c = chan();
+  let res;
+
+  const asyncCall = () =>
+    new Promise((resolve) => {
+      resolve('world');
+    });
+
+  c.basic(function* () {
+    yield put(c.channel, 'hello')();
+  });
+
+  // c.basic(async function* () {
+  //   try {
+  //     const res = await asyncCall();
+  //     const prev = await takeAsync(c.channel)()[1];
+  //     console.log('prev, res -- ', prev, res);
+  //     yield put(c.channel, prev + ' ' + res)();
+  //   } catch (err) {
+  //     console.log(err);
+  //   }
+  // });
+
+  c.basic(function* () {
+    const val = take(c.channel)()[1];
+    yield put(c.channel, val)();
+  });
+
+  c.basic(function* () {
+    res = take(c.channel)()[1];
+  });
+
+  expect(res).toBe('hello');
 });
 
 describe('Usecase 1', () => {

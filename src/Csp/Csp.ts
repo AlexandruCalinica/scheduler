@@ -82,14 +82,35 @@ function _genAsync(channel: Array<any>) {
 }
 
 export function chan() {
-  const channel = [];
+  let channel = [];
   const go = (fn: Function, options?: Options) => {
     const mes = _gen(channel)(fn, options)();
     register(mes, mes.next());
   };
 
+  const goAsync = async (fn: Function, options?: Options) => {
+    const mes = _genAsync(channel)(fn, options)();
+    try {
+      const next = await mes.next();
+      register(mes as any, next);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  const basic = async (fn: () => Generator | AsyncGenerator) => {
+    try {
+      const applied = fn();
+      register(applied as any, applied.next() as any);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return {
     go,
+    basic,
+    goAsync,
     channel,
   };
 }
@@ -133,6 +154,7 @@ export function takeAsync(channel: Array<Promise<any>>): () => Promise<Message> 
       return ['park', null];
     } else {
       let val = await channel.pop();
+      console.log('take val async -> ', val);
       return ['continue', val];
     }
   };
