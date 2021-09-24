@@ -2,35 +2,31 @@ export type MessageState = 'continue' | 'park' | 'wait';
 export type Message = [MessageState, any];
 
 async function run(gen: any) {
+  let result = [];
   for await (let val of gen()) {
     console.log(val);
+    result.push(val);
   }
+  return result;
 }
 
 export function channel(...values: Array<(prev: any) => any>) {
   const chan: any[] = [];
-  let cache = {};
 
   async function* stepper() {
     for (let i = 0; i < values.length; i++) {
       const prev = take(chan)[1];
-
-      if (prev in cache) {
-        put(chan, cache[prev]);
-        yield cache[prev];
-      } else {
-        const next = values[i](prev);
-        Object.assign(cache, { [prev]: next });
-        put(chan, next);
-        yield next;
-      }
+      const next = values[i](prev);
+      put(chan, next);
+      yield next;
     }
   }
 
-  run(stepper);
+  const result = run(stepper);
 
   return {
     chan,
+    result,
   };
 }
 
