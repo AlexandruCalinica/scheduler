@@ -60,9 +60,9 @@ describe('take()', () => {
     const c6 = null;
 
     const t1 = () => take(c1 as []);
-    const t2 = () => take((c2 as unknown) as []);
-    const t3 = () => take((c3 as unknown) as []);
-    const t4 = () => take((c4 as unknown) as []);
+    const t2 = () => take(c2 as unknown as []);
+    const t3 = () => take(c3 as unknown as []);
+    const t4 = () => take(c4 as unknown as []);
     const t5 = () => take(c5);
     const t6 = () => take(c6);
 
@@ -106,9 +106,9 @@ describe('put()', () => {
     const c6 = null;
 
     const p1 = () => put(c1 as [], () => {});
-    const p2 = () => put((c2 as unknown) as [], () => {});
-    const p3 = () => put((c3 as unknown) as [], () => {});
-    const p4 = () => put((c4 as unknown) as [], () => {});
+    const p2 = () => put(c2 as unknown as [], () => {});
+    const p3 = () => put(c3 as unknown as [], () => {});
+    const p4 = () => put(c4 as unknown as [], () => {});
     const p5 = () => put(c5, () => {});
     const p6 = () => put(c6, () => {});
 
