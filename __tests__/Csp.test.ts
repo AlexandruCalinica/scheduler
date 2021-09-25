@@ -2,6 +2,8 @@ import { channel, take, put } from '../src/Csp';
 
 describe('channel()', () => {
   it('Should pass demo test', () => {
+    expect.assertions(1);
+
     const prom = (val: any) =>
       new Promise((resolve) => {
         setTimeout(() => {
@@ -9,27 +11,37 @@ describe('channel()', () => {
         }, 1000);
       });
 
-    channel(
-      () => 'foo',
-      (prev: any) => prom(prev),
-      async (prev: any) => (await prev) + 'a',
-      (prev: any) => (async (prev) => (await prev) + 'b')(prev),
-      (prev: any) => {
-        return prev.then((v: any) => v + 'a');
-      },
-      function () {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve('waited 1 sec');
-          }, 1000);
-        });
-      },
-      async function () {
-        return await new Promise((resolve) =>
-          setTimeout(() => resolve('waited another second'), 1000),
-        );
-      },
-    );
+    return expect(
+      channel(
+        () => 'foo',
+        (prev: any) => prom(prev),
+        async (prev: any) => (await prev) + 'a',
+        (prev: any) => (async (prev) => (await prev) + 'b')(prev),
+        (prev: any) => {
+          return prev.then((v: any) => v + 'a');
+        },
+        function () {
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              resolve('waited 1 sec');
+            }, 1000);
+          });
+        },
+        async function () {
+          return await new Promise((resolve) =>
+            setTimeout(() => resolve('waited another second'), 1000),
+          );
+        },
+      ),
+    ).resolves.toStrictEqual([
+      'foo',
+      'promise fulfilled',
+      'promise fulfilleda',
+      'promise fulfilledab',
+      'promise fulfilledaba',
+      'waited 1 sec',
+      'waited another second',
+    ]);
   });
 });
 
