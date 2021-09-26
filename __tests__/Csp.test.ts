@@ -12,7 +12,7 @@ describe('channel()', () => {
       });
 
     return expect(
-      channel(
+      channel('TEST')(
         () => 'foo',
         (prev: any) => prom(prev),
         async (prev: any) => (await prev) + 'a',
