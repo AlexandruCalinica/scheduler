@@ -1,28 +1,16 @@
 import isFunction from 'lodash/isFunction';
 
-export type MessageState = 'continue' | 'park' | 'wait';
-export type Message = [MessageState, any];
-export type ChannelReturnType = {
-  name: string;
-  result: Array<ChannelReturnType | any>;
-  errors: Array<any>;
-  store: Record<string, any>;
-};
-export type ChannelFunctionValue = (prev: any) => any;
-export type ChannelValues = ChannelPrimitiveValue | ChannelFunctionValue;
-export type Chan = {
-  name: string;
-  body: Array<any>;
-  store: Record<string, any>;
-  record: Array<any>;
-};
-export type ChannelPrimitiveValue = string | number | boolean | Array<any> | Record<any, any>;
-export type YieldWrapper = {
-  key: string;
-  value: any;
-  store: Record<string, any>;
-  isChannel: boolean;
-};
+import {
+  Chan,
+  Message,
+  YieldWrapper,
+  MessageState,
+  ChannelValues,
+  ChannelReturnType,
+  ChannelFunctionValue,
+  ChannelPrimitiveValue,
+  InternalOperatorFunction,
+} from './types';
 
 async function run(
   channelName: string,
@@ -46,6 +34,10 @@ async function run(
   return { name: channelName, result, errors, store: _store };
 }
 
+function isInternalFunction(name: string) {
+  return Object.values(InternalOperatorFunction).includes(name as InternalOperatorFunction);
+}
+
 async function Yielder(current: any, chan: Chan, index: number): Promise<YieldWrapper> {
   let value: any;
   let isChannel = false;
@@ -55,7 +47,7 @@ async function Yielder(current: any, chan: Chan, index: number): Promise<YieldWr
   const previous = take(body)[1];
 
   if (isFunction(current)) {
-    if ((current as Function).name === '__appliedChannel__') {
+    if (isInternalFunction((current as Function).name)) {
       isChannel = true;
     }
     value = await current(previous);
@@ -96,46 +88,42 @@ function go(chan: Chan) {
 // works this way: chan1(chan1('baz'));
 
 export function channel(name: string) {
-  let store = {}; // once this is applied, cannot be updated;
-  let record = [];
-  // maybe return a sync fn that sets some flags for the store
-
-  function __appliedChannel__(
-    values: Array<ChannelValues>,
-    options?: { unshift?: boolean; insert?: boolean },
-  ) {
-    let chan = {
-      name,
-      body: [],
-      store, // always empty object when this fn is called;
-      record,
-    };
-
-    if (Object.values(store).length) {
-      console.log('RECORD:: ', record);
-      // return;
-    }
-    record = [...record, ...values];
-    const result = go(chan)(record);
-
-    return result;
-  }
-
-  function put(...values: Array<ChannelValues>) {
-    return __appliedChannel__(values);
-  }
-  function putFirst(...values: Array<ChannelValues>) {
-    return __appliedChannel__(values);
-  }
-  function putAt(...values: Array<ChannelValues>) {
-    return __appliedChannel__(values);
-  }
+  let state = {
+    name,
+    body: [],
+    store: {},
+    record: [],
+  };
 
   return {
-    put,
-    putAt,
-    putFirst,
+    put(...values: Array<ChannelValues>) {
+      return __put__(values, state);
+    },
+    putFirst(...values: Array<ChannelValues>) {
+      return __putFirst__(values, state);
+    },
+    putAt(index: number, ...values: Array<ChannelValues>) {
+      return __putAt__(values, state, index);
+    },
   };
+}
+
+function __put__(values: Array<ChannelValues>, chan: Chan) {
+  chan.record.push(...values);
+  const result = go(chan)(chan.record);
+  return result;
+}
+
+function __putAt__(values: Array<ChannelValues>, chan: Chan, index: number) {
+  chan.record.splice(index, 0, ...values);
+  const result = go(chan)(chan.record);
+  return result;
+}
+
+function __putFirst__(values: Array<ChannelValues>, chan: Chan) {
+  chan.record.splice(0, 0, ...values);
+  const result = go(chan)(chan.record);
+  return result;
 }
 
 export function composeChannels(...channels: Array<Promise<any> | (() => Promise<any>)>) {
