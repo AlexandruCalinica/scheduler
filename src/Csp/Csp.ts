@@ -34,14 +34,7 @@ async function run(
   try {
     for await (let next of gen()) {
       const { value, isChannel, store, key } = next;
-      let nextValue;
-
-      /** no effect since promises are already awaited; */
-      if (key in store) {
-        nextValue = store[key];
-      } else {
-        nextValue = isChannel ? value.result : value;
-      }
+      const nextValue = isChannel ? value.result : value;
 
       result.push(nextValue);
       store[key] = nextValue;
@@ -58,9 +51,6 @@ async function Yielder(current: any, chan: Chan, index: number): Promise<YieldWr
   let isChannel = false;
   const { name, body, store } = chan;
   const key = `${name}__${index}`;
-
-  /** should check the store for existing keys and return values */
-  console.log(key, store, current);
 
   const previous = take(body)[1];
 
@@ -108,9 +98,12 @@ function go(chan: Chan) {
 export function channel(name: string) {
   let store = {}; // once this is applied, cannot be updated;
   let record = [];
-  console.log('storeul vietii', store);
   // maybe return a sync fn that sets some flags for the store
-  return function __appliedChannel__(...values: Array<ChannelValues>) {
+
+  function __appliedChannel__(
+    values: Array<ChannelValues>,
+    options?: { unshift?: boolean; insert?: boolean },
+  ) {
     let chan = {
       name,
       body: [],
@@ -119,7 +112,6 @@ export function channel(name: string) {
     };
 
     if (Object.values(store).length) {
-      console.log('STORE:: ', store);
       console.log('RECORD:: ', record);
       // return;
     }
@@ -127,6 +119,22 @@ export function channel(name: string) {
     const result = go(chan)(record);
 
     return result;
+  }
+
+  function put(...values: Array<ChannelValues>) {
+    return __appliedChannel__(values);
+  }
+  function putFirst(...values: Array<ChannelValues>) {
+    return __appliedChannel__(values);
+  }
+  function putAt(...values: Array<ChannelValues>) {
+    return __appliedChannel__(values);
+  }
+
+  return {
+    put,
+    putAt,
+    putFirst,
   };
 }
 
