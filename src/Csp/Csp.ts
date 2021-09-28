@@ -3,6 +3,7 @@ import isFunction from 'lodash/isFunction';
 import {
   Chan,
   Message,
+  ChannelError,
   YieldWrapper,
   MessageState,
   ChannelValues,
@@ -19,17 +20,21 @@ async function run(
   let result = [];
   let errors = [];
   let _store = {};
+  let currKey = null;
+
   try {
     for await (let next of gen()) {
       const { value, isChannel, store, key } = next;
       const nextValue = isChannel ? value.result : value;
 
+      currKey = key;
       result.push(nextValue);
       store[key] = nextValue;
       _store = store;
     }
   } catch (err) {
-    errors.push(err);
+    const error = new ChannelError(err, currKey);
+    errors.push(error);
   }
   return { name: channelName, result, errors, store: _store };
 }
@@ -51,6 +56,10 @@ async function Yielder(current: any, chan: Chan, index: number): Promise<YieldWr
       isChannel = true;
     }
     value = await current(previous);
+    if (value.name === name) {
+      value = null;
+      throw new Error('Cannot use a channel inside itself. This will cause an infinite loop.');
+    }
   } else {
     value = await current;
   }
@@ -81,11 +90,6 @@ function go(chan: Chan) {
     return result;
   };
 }
-
-// Should throw an error if a channel instance is returned from a function inside the same channel.
-// This causes an infinite loop and is also redundant;
-// ex: chan1(async () => chan1('foo'));
-// works this way: chan1(chan1('baz'));
 
 export function channel(name: string) {
   let state = {
@@ -160,4 +164,9 @@ export function take(channel: Array<any>) {
     const val = channel.pop();
     return ['continue', val];
   }
+}
+
+function ChannelError(this: ChannelError, message: string, location: string) {
+  this.message = message;
+  this.location = location;
 }

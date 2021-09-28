@@ -26,3 +26,4 @@ export enum InternalOperatorFunction {
   putAt = '__putAt__',
   putFirst = '__putFirst__',
 }
+export type ChannelError = { message: string; location: string };
