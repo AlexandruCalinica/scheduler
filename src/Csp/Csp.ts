@@ -7,6 +7,7 @@ import {
   YieldWrapper,
   MessageState,
   ChannelValues,
+  ChannelInstance,
   ChannelReturnType,
   ChannelFunctionValue,
   ChannelPrimitiveValue,
@@ -91,13 +92,8 @@ function go(chan: Chan) {
   };
 }
 
-export function channel(name: string) {
-  let state = {
-    name,
-    body: [],
-    store: {},
-    record: [],
-  };
+export function channel(name: string): ChannelInstance {
+  let state = new Chan(name);
 
   return {
     put(...values: Array<ChannelValues>) {
@@ -108,6 +104,9 @@ export function channel(name: string) {
     },
     putAt(index: number, ...values: Array<ChannelValues>) {
       return __putAt__(values, state, index);
+    },
+    takeAt(index: number) {
+      return __takeAt__(index, state);
     },
   };
 }
@@ -130,16 +129,8 @@ function __putFirst__(values: Array<ChannelValues>, chan: Chan) {
   return result;
 }
 
-export function composeChannels(...channels: Array<Promise<any> | (() => Promise<any>)>) {
-  const masterChan = {
-    name: 'master',
-    body: [],
-    store: {},
-    record: [],
-  };
-  const appliedGo = go(masterChan);
-
-  return appliedGo(channels);
+function __takeAt__(index: number, chan: Chan) {
+  return go(chan)(chan.record).then(({ result }) => result[index]);
 }
 
 export function put(channel: Array<any>, value: any) {
@@ -169,4 +160,11 @@ export function take(channel: Array<any>) {
 function ChannelError(this: ChannelError, message: string, location: string) {
   this.message = message;
   this.location = location;
+}
+
+function Chan(this: Chan, name: string) {
+  this.body = [];
+  this.name = name;
+  this.store = {};
+  this.record = [];
 }

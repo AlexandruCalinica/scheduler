@@ -1,4 +1,4 @@
-import { channel, composeChannels } from './src';
+import { channel } from './src';
 
 console.clear();
 
@@ -14,9 +14,12 @@ chan1
   })
   .then(({ errors }) => console.log('chan1Err:: ', errors));
 
+chan2.put('iar am puso', async () => await chan1.takeAt(0));
+
 channel('MASTER')
-  .put(chan1.put('foo'))
+  .put(chan1.put('foo'), () => chan2.put())
   .then(({ result, errors }) => {
     console.log('RESULT:: ', result);
     console.log('ERRORS:: ', errors);
+    console.log(result[1]);
   });

@@ -27,3 +27,9 @@ export enum InternalOperatorFunction {
   putFirst = '__putFirst__',
 }
 export type ChannelError = { message: string; location: string };
+export type ChannelInstance = {
+  put(...values: Array<ChannelValues>): Promise<ChannelReturnType>;
+  putFirst(...values: Array<ChannelValues>): Promise<ChannelReturnType>;
+  putAt(index: number, ...values: Array<ChannelValues>): Promise<ChannelReturnType>;
+  takeAt(index: number): any;
+};
