@@ -1,4 +1,5 @@
 import isFunction from 'lodash/isFunction';
+import memoize from 'lodash/memoize';
 
 import {
   Chan,
@@ -40,10 +41,6 @@ async function run(
   return { name: channelName, result, errors, store: _store };
 }
 
-function isInternalFunction(name: string) {
-  return Object.values(InternalOperatorFunction).includes(name as InternalOperatorFunction);
-}
-
 async function Yielder(current: any, chan: Chan, index: number): Promise<YieldWrapper> {
   let value: any;
   let isChannel = false;
@@ -75,22 +72,16 @@ async function Yielder(current: any, chan: Chan, index: number): Promise<YieldWr
   };
 }
 
+const memoizedYielder = memoize(Yielder);
+
 function stepper(values: Array<ChannelValues>, chan: Chan) {
   return async function* appliedStepper() {
     for (let i = 0; i < values.length; i++) {
       let current = values[i];
-      yield Yielder(current, chan, i);
+      yield memoizedYielder(current, chan, i);
     }
   };
 }
-
-// function go(chan: Chan) {
-//   return function appliedGo(values: Array<ChannelValues>) {
-//     const result = run(chan.name, stepper(values, chan));
-
-//     return result;
-//   };
-// }
 
 function go(chan: Chan, values: Array<ChannelValues>) {
   const result = run(chan.name, stepper(values, chan));
@@ -161,6 +152,10 @@ export function take(channel: Array<any>) {
     const val = channel.pop();
     return ['continue', val];
   }
+}
+
+function isInternalFunction(name: string) {
+  return Object.values(InternalOperatorFunction).includes(name as InternalOperatorFunction);
 }
 
 function ChannelError(this: ChannelError, message: string, location: string) {
