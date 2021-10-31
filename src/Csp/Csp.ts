@@ -84,12 +84,18 @@ function stepper(values: Array<ChannelValues>, chan: Chan) {
   };
 }
 
-function go(chan: Chan) {
-  return function appliedGo(values: Array<ChannelValues>) {
-    const result = run(chan.name, stepper(values, chan));
+// function go(chan: Chan) {
+//   return function appliedGo(values: Array<ChannelValues>) {
+//     const result = run(chan.name, stepper(values, chan));
 
-    return result;
-  };
+//     return result;
+//   };
+// }
+
+function go(chan: Chan, values: Array<ChannelValues>) {
+  const result = run(chan.name, stepper(values, chan));
+
+  return result;
 }
 
 export function channel(name: string): ChannelInstance {
@@ -113,24 +119,24 @@ export function channel(name: string): ChannelInstance {
 
 function __put__(values: Array<ChannelValues>, chan: Chan) {
   chan.record.push(...values);
-  const result = go(chan)(chan.record);
+  const result = go(chan, chan.record);
   return result;
 }
 
 function __putAt__(values: Array<ChannelValues>, chan: Chan, index: number) {
   chan.record.splice(index, 0, ...values);
-  const result = go(chan)(chan.record);
+  const result = go(chan, chan.record);
   return result;
 }
 
 function __putFirst__(values: Array<ChannelValues>, chan: Chan) {
   chan.record.splice(0, 0, ...values);
-  const result = go(chan)(chan.record);
+  const result = go(chan, chan.record);
   return result;
 }
 
 function __takeAt__(index: number, chan: Chan) {
-  return go(chan)(chan.record).then(({ result }) => result[index]);
+  return go(chan, chan.record).then(({ result }) => result[index]);
 }
 
 export function put(channel: Array<any>, value: any) {
